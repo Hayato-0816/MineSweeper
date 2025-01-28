@@ -13,21 +13,46 @@ class Minesweeper:
         self.master = master
         self.master.title("マインスイーパー")
         
-        self.default_size()
-        self.initial_setup()
+        self.game_board_size_setting()
+        self.startup_frame()
         self.start_button()
         
         # ゲーム部フレーム
         self.game_frame = tk.Frame(self.master)
         self.game_frame.pack(expand=True)
     
-    def default_size(self):
+    def game_board_size_setting(self):
         """ゲームのサイズ設定を行うメソッド"""
         self.default_rows = tk.StringVar(value="15")
         self.default_cols = tk.StringVar(value="15")
         self.default_mines = tk.StringVar(value="10")
-    
-    def initial_setup(self):
+
+        self.rows = int(self.default_rows.get())
+        self.cols = int(self.default_cols.get())
+        self.mines = int(self.default_mines.get())
+
+    def game_board_size_validation(self):
+        """ゲームのサイズ設定の妥当性チェックを行うメソッド"""
+        if self.rows < 5 or self.cols < 5:
+            tk.messagebox.showerror("エラー", "行数と列数は5以上にしてください")
+            return
+        if self.rows > 30 or self.cols > 50:
+            tk.messagebox.showerror("エラー", "行数は30以下、列数は50以下にしてください")
+            return
+        if self.mines >= (self.rows * self.cols):
+            tk.messagebox.showerror("エラー", "地雷の数が多すぎます")
+            return
+
+    def start_button(self):
+        """スタートボタン"""
+        tk.Button(self.settings_frame, text="ゲーム開始", command=self.start_game).grid(row=1, column=0, columnspan=6, pady=10)
+
+    def retry_button(self):
+        """リトライボタン"""
+        self.retry = tk.Button(self.game_frame, text="リトライ", command=self.start_game)
+        self.retry.pack(pady=10)
+
+    def startup_frame(self):
         """ゲームの初期設定を行うメソッド"""
         # 設定用フレーム
         self.settings_frame = tk.Frame(self.master)
@@ -44,50 +69,40 @@ class Minesweeper:
         # 地雷数設定
         tk.Label(self.settings_frame, text="地雷数:").grid(row=0, column=4, padx=5)
         tk.Entry(self.settings_frame, textvariable=self.default_mines, width=5).grid(row=0, column=5, padx=5)
+
+    def game_board_frame(self):
+        """ゲーム盤フレーム"""
+        # ウィンドウサイズを調整（ボタンサイズに基づいて計算）
+        button_size = 30  # ボタンの基本サイズ（ピクセル）
+        window_width = self.cols * button_size + 40
+        window_height = self.rows * button_size + 100  # 設定部分の高さを考慮
         
-    def start_button(self):
-        """スタートボタン"""
-        tk.Button(self.settings_frame, text="ゲーム開始", command=self.start_game).grid(row=1, column=0, columnspan=6, pady=10)
+        # 画面の中央に表示されるように位置を計算
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        # ウィンドウサイズと位置を設定
+        self.master.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        self.master.resizable(False, False)
+        
+        # ゲーム盤の初期化
+        self.grid = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
+        self.buttons = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+        
+        self.frame = tk.Frame(self.game_frame)
+        self.frame.pack(expand=True)
 
     def start_game(self):
         """設定値を取得してゲームを開始"""
         try:
-            # 入力値を取得
-            self.rows = int(self.default_rows.get())
-            self.cols = int(self.default_cols.get())
-            self.mines = int(self.default_mines.get())
-            
-            self.size_validation()
+            self.game_board_size_setting()
+            self.game_board_size_validation()
             self.clear_game()
-
-            # ウィンドウサイズを調整（ボタンサイズに基づいて計算）
-            button_size = 30  # ボタンの基本サイズ（ピクセル）
-            window_width = self.cols * button_size + 40
-            window_height = self.rows * button_size + 100  # 設定部分の高さを考慮
-            
-            # 画面の中央に表示されるように位置を計算
-            screen_width = self.master.winfo_screenwidth()
-            screen_height = self.master.winfo_screenheight()
-            x = (screen_width - window_width) // 2
-            y = (screen_height - window_height) // 2
-            
-            # ウィンドウサイズと位置を設定
-            self.master.geometry(f"{window_width}x{window_height}+{x}+{y}")
-            self.master.resizable(False, False)
-            
-            # ゲーム盤の初期化
-            self.grid = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
-            self.buttons = [[None for _ in range(self.cols)] for _ in range(self.rows)]
-            
-            # メインフレームを作成
-            self.frame = tk.Frame(self.game_frame)
-            self.frame.pack(expand=True)
-            
-            # リトライボタン
-            self.retry = tk.Button(self.game_frame, text="リトライ", command=self.start_game)
-            self.retry.pack(pady=10)
-            
-            self.setup()  # ゲーム盤のセットアップを実行
+            self.game_board_frame()
+            self.retry_button()
+            self.game_board_setup()  # ゲーム盤のセットアップを実行
             
         except ValueError:
             tk.messagebox.showerror("エラー", "数値を正しく入力してください")
@@ -96,20 +111,8 @@ class Minesweeper:
         """ゲーム盤のクリアを行うメソッド"""
         for widget in self.game_frame.winfo_children():
             widget.destroy()
-    
-    def size_validation(self):
-        """ゲームのサイズ設定の妥当性チェックを行うメソッド"""
-        if self.rows < 5 or self.cols < 5:
-            tk.messagebox.showerror("エラー", "行数と列数は5以上にしてください")
-            return
-        if self.rows > 30 or self.cols > 50:
-            tk.messagebox.showerror("エラー", "行数は30以下、列数は50以下にしてください")
-            return
-        if self.mines >= (self.rows * self.cols):
-            tk.messagebox.showerror("エラー", "地雷の数が多すぎます")
-            return
 
-    def setup(self):
+    def game_board_setup(self):
         """ゲーム盤の初期設定を行うメソッド"""
         # 地雷をランダムに配置
         for _ in range(self.mines):
@@ -212,6 +215,7 @@ class Minesweeper:
             for c in range(self.cols):
                 if self.grid[r][c] == -1:  # 地雷のマスを見つけた場合
                     self.buttons[r][c].config(text='💣')  # 地雷を表示
+                    tk.messagebox.showinfo("ゲームオーバー", "ゲームオーバーです")
 
     def check_win(self):
         """ゲームクリア判定を行うメソッド"""
@@ -220,6 +224,8 @@ class Minesweeper:
             for c in range(self.cols):
                 if self.buttons[r][c]['state'] != 'disabled' and self.grid[r][c] != -1:
                     unopened += 1
+                elif self.buttons[r][c]['text'] == '🚩' and self.grid[r][c] == -1:
+                    unopened -= 1
         
         if unopened == 0:
             # 地雷以外の全てのマスが開かれた場合
