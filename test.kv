@@ -1,0 +1,15 @@
+#:kivy 2.0.0
+
+<TestBox>:
+    orientation: 'horizontal'
+    padding: 10
+    spacing: 10
+    size_hint: None, None
+    pos_hint: {'center_x': .5, 'center_y': .5}
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
